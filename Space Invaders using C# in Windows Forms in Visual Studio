@@ -1,0 +1,282 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace arcade_shooting_game
+{
+    public partial class Form1 : Form
+    {
+        int gamescore,score = 0;
+        int playerSpeed = 15;
+        int highscore = 0;
+        int enemyBulletTimer;
+        int enemySpeed = 100;
+        int startingenemynumber = 110;
+        int bulletspeed = 17;
+
+
+        PictureBox[] invaders;
+
+        bool shooting, isGameOver, goLeft,goRight;
+
+        public Form1()
+        {
+            InitializeComponent();
+            gameSetup();
+            
+        }
+        
+        private void Form1_Load(object sender, EventArgs e)
+        {
+
+        }
+
+        private void Form1_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Left )
+            {
+                goLeft = true;
+            }
+            if (e.KeyCode == Keys.Right)
+            {
+                goRight = true;
+            }
+           
+        }
+        private void move_Tick(object sender, EventArgs e)
+        {
+            
+            if (goLeft && player.Left > -20)
+            {
+                player.Left -= playerSpeed;
+            }
+            if (goRight && player.Left < 1200)
+            {
+                player.Left += playerSpeed;
+            }
+
+            txtScore.Text = Convert.ToString(score);
+
+            enemyBulletTimer -= 10;
+
+            if (enemyBulletTimer < 1)
+            {
+                enemyBulletTimer = 300;
+                makeBullet("enemybullet");
+            }
+
+            foreach (Control x in this.Controls)
+            {
+                if (x is PictureBox && (string)x.Tag == "invaders")
+                {
+                    x.Left += enemySpeed;
+
+                    if (x.Left > 1200)
+                    {
+                        x.Top += 65;
+                        x.Left = -80;
+                    }
+                    //cand te loveste o nava
+                    if (x.Bounds.IntersectsWith(player.Bounds))
+                    {
+                        gameOver();
+                        highscore += score;
+                        startingenemynumber = 10 ;
+                        bulletspeed = 17;
+                        score = 0;
+                        txtScore.Text = Convert.ToString(score);
+                        gameovertext.Visible = true;
+                    }
+
+                    foreach (Control y in this.Controls)
+                    {
+                        if (y is PictureBox && (string)y.Tag == "bullet")
+                        {
+                            if (y.Bounds.IntersectsWith(x.Bounds))
+                            {
+                                this.Controls.Remove(x);
+                                this.Controls.Remove(y);
+                                score += 1;
+                                gamescore += 1;
+                                shooting = false;
+                            }
+                        }
+                    }
+                }
+
+                //aici se actualizează proiectilul jucătorului
+                if (x is PictureBox && (string)x.Tag == "bullet")
+                {
+                    x.Top -= bulletspeed;
+
+                    if (x.Top < 15)
+                    {
+                        this.Controls.Remove(x);
+                        shooting = false;
+                    }
+                }
+                //pentru proiectilul inamic
+                if (x is PictureBox && (string)x.Tag == "enemybullet")
+                {
+                    //viteza proiectilului
+                    x.Top += 10;
+                    if (x.Top > 700)
+                    {
+                        this.Controls.Remove(x);
+                    }
+                    //daca te nimeresc proiectilele inamice
+                    if (x.Bounds.IntersectsWith(player.Bounds))
+                    {
+                        this.Controls.Remove(x);
+                        gameOver();
+                        removeAll();
+                        startingenemynumber = 10;
+                        score = 0;
+                        bulletspeed = 17;
+                        txtScore.Text =Convert.ToString(score);
+                        gameovertext.Visible = true;
+                    }
+                }
+
+            }
+
+            if (gamescore > 8)
+            {
+                enemySpeed = 8;
+            }
+
+            if (gamescore == invaders.Length)
+            {
+                
+                gameOver();
+                bulletspeed += 1;
+                startingenemynumber += 1;
+                victorytext.Visible = true;
+            }
+
+        }
+
+
+        private void Form1_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Left)
+            {
+                goLeft = false;
+            }
+            if (e.KeyCode == Keys.Right)
+            {
+                goRight = false;
+            }
+            if (e.KeyCode==Keys.Space && shooting == false)
+            {
+                shooting = true;
+                makeBullet("bullet");
+            }
+            if(e.KeyCode==Keys.Enter && isGameOver == true)
+            {
+                removeAll();
+                gameSetup();
+
+                
+            }
+        }
+        private void makeInvaders()
+        {
+
+            invaders = new PictureBox[startingenemynumber];
+
+            int left = 0;
+
+            for(int i=0; i < invaders.Length; i++)
+            {
+                invaders[i] = new PictureBox();
+                invaders[i].Size = new Size(60, 50);
+                invaders[i].Image = Properties.Resources.enemy11;
+                invaders[i].Top = 5;
+                invaders[i].Tag = "invaders";
+                invaders[i].Left = left;
+                invaders[i].SizeMode = PictureBoxSizeMode.StretchImage;
+                this.Controls.Add(invaders[i]);
+                left = left - 80;
+            }
+        }
+
+        private void gameSetup()
+        {
+            
+            isGameOver = false;
+            victorytext.Visible = false;
+            gameovertext.Visible = false;
+
+            enemyBulletTimer = 300;
+            enemySpeed = 6;
+            shooting = false;
+
+            makeInvaders();
+            move.Start(); 
+        }
+        private void gameOver()
+        {
+            if (score > highscore)
+            {
+                highscore = score;
+                highscorelabel.Text = Convert.ToString(score);
+            }
+            isGameOver = true;
+            gamescore = 0;
+            move.Stop();
+            txtScore.Text = Convert.ToString(score);
+        }
+
+
+        private void removeAll()
+        {
+            foreach(PictureBox i in invaders)
+            {
+                this.Controls.Remove(i);
+            }
+
+            foreach(Control x in this.Controls)
+            {
+                if(x is PictureBox)
+                {
+                    if((string)x.Tag=="bullet"|| (string)x.Tag == "enemybullet")
+                    {
+                        this.Controls.Remove(x);
+                    }
+                }
+            }
+        }
+        private void makeBullet(string bulletTag)
+        {
+            PictureBox bullet = new PictureBox();
+
+            
+            bullet.Tag = bulletTag;
+            bullet.Left = player.Left + player.Width / 2;
+            if ((string)bullet.Tag == "bullet")
+            {
+                bullet.Size = new Size(20, 20);
+                bullet.Image = Properties.Resources.New_Piskel_png;
+                bullet.SizeMode = PictureBoxSizeMode.StretchImage;
+                bullet.Top = player.Top - 20;
+            }
+            else if ((string)bullet.Tag == "enemybullet")
+            {
+                bullet.Image = Properties.Resources.New_Piskel_png;
+                bullet.SizeMode = PictureBoxSizeMode.StretchImage;
+                bullet.Top = -100;
+                bullet.Size = new Size(15, 15);
+            }
+            this.Controls.Add(bullet);
+            bullet.BringToFront();
+        }
+
+    }
+}
